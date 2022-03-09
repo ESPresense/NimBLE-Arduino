@@ -152,35 +152,35 @@ size_t NimBLEClient::deleteService(const NimBLEUUID &uuid) {
 
 /**
  * @brief Connect to the BLE Server.
- * @param [in] deleteAttibutes If true this will delete any attribute objects this client may already\n
+ * @param [in] deleteAttributes If true this will delete any attribute objects this client may already\n
  * have created and clears the vectors after successful connection.
  * @return True on success.
  */
-bool NimBLEClient::connect(bool deleteAttibutes) {
-    return connect(m_peerAddress, deleteAttibutes);
+bool NimBLEClient::connect(bool deleteAttributes) {
+    return connect(m_peerAddress, deleteAttributes);
 }
 
 /**
  * @brief Connect to an advertising device.
  * @param [in] device The device to connect to.
- * @param [in] deleteAttibutes If true this will delete any attribute objects this client may already\n
+ * @param [in] deleteAttributes If true this will delete any attribute objects this client may already\n
  * have created and clears the vectors after successful connection.
  * @return True on success.
  */
-bool NimBLEClient::connect(NimBLEAdvertisedDevice* device, bool deleteAttibutes) {
+bool NimBLEClient::connect(NimBLEAdvertisedDevice* device, bool deleteAttributes) {
     NimBLEAddress address(device->getAddress());
-    return connect(address, deleteAttibutes);
+    return connect(address, deleteAttributes);
 }
 
 
 /**
  * @brief Connect to the BLE Server.
  * @param [in] address The address of the server.
- * @param [in] deleteAttibutes If true this will delete any attribute objects this client may already\n
+ * @param [in] deleteAttributes If true this will delete any attribute objects this client may already\n
  * have created and clears the vectors after successful connection.
  * @return True on success.
  */
-bool NimBLEClient::connect(const NimBLEAddress &address, bool deleteAttibutes) {
+bool NimBLEClient::connect(const NimBLEAddress &address, bool deleteAttributes) {
     NIMBLE_LOGD(LOG_TAG, ">> connect(%s)", address.toString().c_str());
 
     if(!NimBLEDevice::m_synced) {
@@ -271,20 +271,11 @@ bool NimBLEClient::connect(const NimBLEAddress &address, bool deleteAttibutes) {
     // Wait for the connect timeout time +1 second for the connection to complete
     if(ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(m_connectTimeout + 1000)) == pdFALSE) {
         m_pTaskData = nullptr;
-        // If a connection was made but no response from MTU exchange; disconnect
-        if(isConnected()) {
-            NIMBLE_LOGE(LOG_TAG, "Connect timeout - no response");
-            disconnect();
-        } else {
-        // workaround; if the controller doesn't cancel the connection
-        // at the timeout, cancel it here.
-            NIMBLE_LOGE(LOG_TAG, "Connect timeout - cancelling");
-            ble_gap_conn_cancel();
-        }
+        // If a connection was made but no response from MTU exchange; ignore
+         NIMBLE_LOGE(LOG_TAG, "Connection was made but no response from MTU exchange");
+    }
 
-        return false;
-
-    } else if(taskData.rc != 0){
+    if(taskData.rc != 0){
         m_lastErr = taskData.rc;
         NIMBLE_LOGE(LOG_TAG, "Connection failed; status=%d %s",
                     taskData.rc,
@@ -299,7 +290,7 @@ bool NimBLEClient::connect(const NimBLEAddress &address, bool deleteAttibutes) {
         NIMBLE_LOGI(LOG_TAG, "Connection established");
     }
 
-    if(deleteAttibutes) {
+    if(deleteAttributes) {
         deleteServices();
     }
 
