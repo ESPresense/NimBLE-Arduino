@@ -69,7 +69,9 @@
  * The maximum time to wait for a single ATT response.  The spec defines this
  * as the ATT transaction time (Vol. 3, Part F, 3.3.3)
  */
+#ifndef BLE_GATTC_UNRESPONSIVE_TIMEOUT_MS
 #define BLE_GATTC_UNRESPONSIVE_TIMEOUT_MS       30000 /* ms */
+#endif
 
 #define BLE_GATT_OP_NONE                        UINT8_MAX
 #define BLE_GATT_OP_MTU                         0

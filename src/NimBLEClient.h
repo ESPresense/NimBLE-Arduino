@@ -84,6 +84,7 @@ private:
     friend class            NimBLEDevice;
     friend class            NimBLERemoteService;
 
+    static int              handleMtuEvent(uint16_t conn_handle, const struct ble_gatt_error *error, uint16_t mtu, void *arg);
     static int              handleGapEvent(struct ble_gap_event *event, void *arg);
     static int              serviceDiscoveredCB(uint16_t conn_handle,
                                                 const struct ble_gatt_error *error,

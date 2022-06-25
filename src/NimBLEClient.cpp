@@ -287,10 +287,21 @@ bool NimBLEClient::connect(const NimBLEAddress &address, bool deleteAttributes) 
     ulTaskNotifyValueClear(cur_task, ULONG_MAX);
 #endif
     // Wait for the connect timeout time +1 second for the connection to complete
-    if(ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(m_connectTimeout + 1000)) == pdFALSE) {
+       if(ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(m_connectTimeout + 1000)) == pdFALSE) {
         m_pTaskData = nullptr;
-        // If a connection was made but no response from MTU exchange; ignore
-         NIMBLE_LOGE(LOG_TAG, "Connection was made but no response from MTU exchange");
+        // If a connection was made but no response from MTU exchange; disconnect
+        if(isConnected()) {
+            NIMBLE_LOGE(LOG_TAG, "Connect timeout - no response");
+            disconnect();
+        } else {
+        // workaround; if the controller doesn't cancel the connection
+        // at the timeout, cancel it here.
+            NIMBLE_LOGE(LOG_TAG, "Connect timeout - cancelling");
+            ble_gap_conn_cancel();
+        }
+
+        return false;
+
     }
 
     if(taskData.rc != 0){
@@ -910,6 +921,21 @@ uint16_t NimBLEClient::getMTU() {
 } // getMTU
 
 
+int NimBLEClient::handleMtuEvent(uint16_t conn_handle, const struct ble_gatt_error *error, uint16_t mtu, void *arg) {
+    NimBLEClient* client = (NimBLEClient*)arg;
+    NIMBLE_LOGD(LOG_TAG, "handleMtuEvent: conn_handle: %d, err %d, mtu: %d", conn_handle, error->status, mtu);
+
+     if(client->m_pTaskData != nullptr) {
+        client->m_pTaskData->rc = 0;
+        if(client->m_pTaskData->task) {
+            NIMBLE_LOGD(LOG_TAG, "GIVE: %d", client->m_pTaskData->rc);
+            xTaskNotifyGive(client->m_pTaskData->task);
+        }
+        client->m_pTaskData = nullptr;
+    }
+    return 0;
+}
+
 /**
  * @brief Handle a received GAP event.
  * @param [in] event The event structure sent by the NimBLE stack.
@@ -988,11 +1014,16 @@ int NimBLEClient::handleGapEvent(struct ble_gap_event *event, void *arg) {
                 }
 
                 client->m_conn_id = event->connect.conn_handle;
-
-                rc = ble_gattc_exchange_mtu(client->m_conn_id, NULL, NULL);
-                if(rc != 0) {
-                    NIMBLE_LOGE(LOG_TAG, "MTU exchange error; rc=%d %s",
-                                rc, NimBLEUtils::returnCodeToString(rc));
+                if (ble_att_preferred_mtu() > 23) {
+                    NIMBLE_LOGI(LOG_TAG, "MTU exchange");
+                    rc = ble_gattc_exchange_mtu(client->m_conn_id, handleMtuEvent, client);
+                    if(rc != 0) {
+                        NIMBLE_LOGE(LOG_TAG, "MTU exchange error; rc=%d %s",
+                                    rc, NimBLEUtils::returnCodeToString(rc));
+                        break;
+                    }
+                } else {
+                    rc = 0;
                     break;
                 }
 
@@ -1129,8 +1160,8 @@ int NimBLEClient::handleGapEvent(struct ble_gap_event *event, void *arg) {
             NIMBLE_LOGI(LOG_TAG, "mtu update event; conn_handle=%d mtu=%d",
                         event->mtu.conn_handle,
                         event->mtu.value);
-            rc = 0;
-            break;
+
+            return 0;
         } // BLE_GAP_EVENT_MTU
 
         case BLE_GAP_EVENT_PASSKEY_ACTION: {
@@ -1199,6 +1230,7 @@ int NimBLEClient::handleGapEvent(struct ble_gap_event *event, void *arg) {
     if(client->m_pTaskData != nullptr) {
         client->m_pTaskData->rc = rc;
         if(client->m_pTaskData->task) {
+            NIMBLE_LOGD(LOG_TAG, "GIVE: %d", client->m_pTaskData->rc);
             xTaskNotifyGive(client->m_pTaskData->task);
         }
         client->m_pTaskData = nullptr;
