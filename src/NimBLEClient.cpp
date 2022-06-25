@@ -980,9 +980,16 @@ int NimBLEClient::handleGapEvent(struct ble_gap_event *event, void *arg) {
             if (rc == 0) {
                 NIMBLE_LOGI(LOG_TAG, "Connected event");
 
+                rc = ble_gap_conn_find(event->connect.conn_handle, NULL);
+                if(rc != 0) {
+                    NIMBLE_LOGE(LOG_TAG, "Connection not found; rc=%d %s",
+                                rc, NimBLEUtils::returnCodeToString(rc));
+                    break;
+                }
+
                 client->m_conn_id = event->connect.conn_handle;
 
-                rc = ble_gattc_exchange_mtu(client->m_conn_id, NULL,NULL);
+                rc = ble_gattc_exchange_mtu(client->m_conn_id, NULL, NULL);
                 if(rc != 0) {
                     NIMBLE_LOGE(LOG_TAG, "MTU exchange error; rc=%d %s",
                                 rc, NimBLEUtils::returnCodeToString(rc));
