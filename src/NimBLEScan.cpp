@@ -335,7 +335,7 @@ bool NimBLEScan::start(uint32_t duration, void (*scanCompleteCB)(NimBLEScanResul
     scan_params.itvl    = m_scan_params.itvl;
     scan_params.window  = m_scan_params.window;
     int rc = ble_gap_ext_disc(NimBLEDevice::m_own_addr_type,
-                              duration/10,
+                              duration == BLE_HS_FOREVER ? BLE_HS_FOREVER : duration/10,
                               0,
                               m_scan_params.filter_duplicates,
                               m_scan_params.filter_policy,
