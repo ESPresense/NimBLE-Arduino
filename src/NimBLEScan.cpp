@@ -307,7 +307,7 @@ bool NimBLEScan::isScanning() {
  * @param [in] is_continue Set to true to save previous scan results, false to clear them.
  * @return True if scan started or false if there was an error.
  */
-bool NimBLEScan::start(uint32_t duration, void (*scanCompleteCB)(NimBLEScanResults), bool is_continue) {
+bool NimBLEScan::start(uint32_t duration, void (*scanCompleteCB)(NimBLEScanResults), bool is_continue, bool uncoded_only) {
     NIMBLE_LOGD(LOG_TAG, ">> start: duration=%" PRIu32, duration);
 
     // Save the callback to be invoked when the scan completes.
@@ -335,13 +335,13 @@ bool NimBLEScan::start(uint32_t duration, void (*scanCompleteCB)(NimBLEScanResul
     scan_params.itvl    = m_scan_params.itvl;
     scan_params.window  = m_scan_params.window;
     int rc = ble_gap_ext_disc(NimBLEDevice::m_own_addr_type,
-                              duration/10,
+                              duration == BLE_HS_FOREVER ? BLE_HS_FOREVER : duration/10,
                               0,
                               m_scan_params.filter_duplicates,
                               m_scan_params.filter_policy,
                               m_scan_params.limited,
                               &scan_params,
-                              &scan_params,
+                              uncoded_only ? NULL : &scan_params,
                               NimBLEScan::handleGapEvent,
                               NULL);
 #else
