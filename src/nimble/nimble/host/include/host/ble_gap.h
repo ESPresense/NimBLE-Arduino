@@ -403,6 +403,9 @@ struct ble_gap_ext_disc_desc {
      * set (BLE_ADDR_ANY otherwise).
      */
     ble_addr_t direct_addr;
+
+    /** Primary advertising channel index (0xFF if unavailable) */
+    uint8_t channel_index;
 };
 #endif
 
@@ -433,6 +436,9 @@ struct ble_gap_disc_desc {
      * event type (BLE_ADDR_ANY otherwise).
      */
     ble_addr_t direct_addr;
+
+    /** Primary advertising channel index (0xFF if unavailable) */
+    uint8_t channel_index;
 };
 
 struct ble_gap_repeat_pairing {
