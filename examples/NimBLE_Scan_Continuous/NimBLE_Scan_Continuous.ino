@@ -2,6 +2,10 @@
  * This example will scan forever while consuming as few resources as possible
  * and report all advertisments on the serial monitor.
  *
+ * The scan callback prints the primary advertising channel for each
+ * advertisement when available, demonstrating the use of
+ * NimBLEAdvertisedDevice::getChannel().
+ *
  * Created: on January 31 2021
  *      Author: H2zero
  *
@@ -13,7 +17,14 @@ NimBLEScan* pBLEScan;
 
 class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks {
     void onResult(NimBLEAdvertisedDevice* advertisedDevice) {
-      Serial.printf("Advertised Device: %s \n", advertisedDevice->toString().c_str());
+      uint8_t channel = advertisedDevice->getChannel();
+      if (channel != 0xFF) {
+        Serial.printf("Advertised Device on channel %u: %s \n",
+                      channel, advertisedDevice->toString().c_str());
+      } else {
+        Serial.printf("Advertised Device on unknown channel: %s \n",
+                      advertisedDevice->toString().c_str());
+      }
     }
 };
 

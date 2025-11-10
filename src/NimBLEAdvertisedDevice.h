@@ -38,6 +38,9 @@ class NimBLEScan;
  *
  * When we perform a %BLE scan, the result will be a set of devices that are advertising.  This
  * class provides a model of a detected device.
+ *
+ * The getChannel() method returns the primary advertising channel (37, 38, or 39) on which the
+ * advertisement was received, or 0xFF if the channel information is not available from the controller.
  */
 class NimBLEAdvertisedDevice {
 public:
@@ -120,6 +123,7 @@ public:
     size_t          getPayloadLength();
     uint8_t         getAddressType();
     time_t          getTimestamp();
+    uint8_t         getChannel();
     bool            isAdvertisingService(const NimBLEUUID &uuid);
     bool            haveAppearance();
     bool            haveManufacturerData();
@@ -149,6 +153,7 @@ private:
     void    setAdvType(uint8_t advType, bool isLegacyAdv);
     void    setPayload(const uint8_t *payload, uint8_t length, bool append);
     void    setRSSI(int rssi);
+    void    setChannelIndex(uint8_t channel)   { m_channelIndex = channel; }
 #if CONFIG_BT_NIMBLE_EXT_ADV
     void    setSetId(uint8_t sid)              { m_sid = sid; }
     void    setPrimaryPhy(uint8_t phy)         { m_primPhy = phy; }
@@ -164,6 +169,7 @@ private:
     time_t          m_timestamp;
     bool            m_callbackSent;
     uint8_t         m_advLength;
+    uint8_t         m_channelIndex;
 #if CONFIG_BT_NIMBLE_EXT_ADV
     bool            m_isLegacyAdv;
     uint8_t         m_sid;

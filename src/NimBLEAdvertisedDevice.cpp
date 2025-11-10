@@ -36,6 +36,7 @@ NimBLEAdvertisedDevice::NimBLEAdvertisedDevice() :
     m_callbackSent     = false;
     m_timestamp        = 0;
     m_advLength        = 0;
+    m_channelIndex     = 0xFF;
 } // NimBLEAdvertisedDevice
 
 
@@ -821,6 +822,19 @@ uint8_t NimBLEAdvertisedDevice::getAddressType() {
 time_t NimBLEAdvertisedDevice::getTimestamp() {
     return m_timestamp;
 } // getTimestamp
+
+
+/**
+ * @brief Get the primary advertising channel.
+ * @return The advertising channel (37, 38, or 39) when available, or 0xFF when unknown.
+ */
+uint8_t NimBLEAdvertisedDevice::getChannel() {
+    // Map controller channel index (0-2) to BLE advertising channels (37-39)
+    if (m_channelIndex <= 2) {
+        return 37 + m_channelIndex;
+    }
+    return 0xFF;
+} // getChannel
 
 
 /**

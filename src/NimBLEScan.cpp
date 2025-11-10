@@ -130,6 +130,7 @@ NimBLEScan::~NimBLEScan() {
 
             advertisedDevice->m_timestamp = time(nullptr);
             advertisedDevice->setRSSI(disc.rssi);
+            advertisedDevice->setChannelIndex(disc.channel_index);
             advertisedDevice->setPayload(disc.data, disc.length_data, (isLegacyAdv &&
                                          event_type == BLE_HCI_ADV_RPT_EVTYPE_SCAN_RSP));
 

@@ -465,7 +465,7 @@ ble_hs_hci_evt_le_adv_rpt_first_pass(const void *data, unsigned int len)
         rpt = data;
 
         len -= sizeof(*rpt) + 1;
-        data += sizeof(rpt) + 1;
+        data += sizeof(*rpt) + 1;
 
         if (rpt->data_len > len) {
             return BLE_HS_ECONTROLLER;
@@ -501,11 +501,12 @@ ble_hs_hci_evt_le_adv_rpt(uint8_t subevent, const void *data, unsigned int len)
     data += sizeof(*ev);
 
     desc.direct_addr = *BLE_ADDR_ANY;
+    desc.channel_index = 0xFF;
 
     for (i = 0; i < ev->num_reports; i++) {
         rpt = data;
 
-        data += sizeof(rpt) + rpt->data_len + 1;
+        data += sizeof(*rpt) + rpt->data_len + 1;
 
         desc.event_type = rpt->type;
         desc.addr.type = rpt->addr_type;
@@ -513,6 +514,10 @@ ble_hs_hci_evt_le_adv_rpt(uint8_t subevent, const void *data, unsigned int len)
         desc.length_data = rpt->data_len;
         desc.data = rpt->data;
         desc.rssi = rpt->data[rpt->data_len];
+        /* Channel index follows RSSI if available */
+        if ((const uint8_t*)data - (const uint8_t*)rpt > sizeof(*rpt) + rpt->data_len + 1) {
+            desc.channel_index = rpt->data[rpt->data_len + 1];
+        }
 
         ble_gap_rx_adv_report(&desc);
     }
@@ -535,6 +540,7 @@ ble_hs_hci_evt_le_dir_adv_rpt(uint8_t subevent, const void *data, unsigned int l
     /* Data fields not present in a direct advertising report. */
     desc.data = NULL;
     desc.length_data = 0;
+    desc.channel_index = 0xFF;
 
     for (i = 0; i < ev->num_reports; i++) {
         desc.event_type = ev->reports[i].type;
@@ -612,6 +618,7 @@ ble_hs_hci_evt_le_ext_adv_rpt(uint8_t subevent, const void *data,
     report = &ev->reports[0];
     for (i = 0; i < ev->num_reports; i++) {
         memset(&desc, 0, sizeof(desc));
+        desc.channel_index = 0xFF;
 
         desc.props = (report->evt_type) & 0x1F;
         if (desc.props & BLE_HCI_ADV_LEGACY_MASK) {
@@ -649,6 +656,14 @@ ble_hs_hci_evt_le_ext_adv_rpt(uint8_t subevent, const void *data,
         desc.prim_phy = report->pri_phy;
         desc.sec_phy = report->sec_phy;
         desc.periodic_adv_itvl = report->periodic_itvl;
+        /* Channel index may follow the data if available */
+        if (report->data_len < 255) {
+            const uint8_t *channel_ptr = &report->data[report->data_len];
+            /* Verify we're not reading past the event data */
+            if ((const uint8_t*)channel_ptr < (const uint8_t*)data + len) {
+                desc.channel_index = *channel_ptr;
+            }
+        }
 
         ble_gap_rx_ext_adv_report(&desc);
 
