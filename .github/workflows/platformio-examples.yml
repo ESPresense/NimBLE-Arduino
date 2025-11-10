@@ -1,0 +1,63 @@
+name: Build Arduino examples
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'examples/**'
+      - 'library.properties'
+      - '.github/workflows/platformio-examples.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'examples/**'
+      - 'library.properties'
+      - '.github/workflows/platformio-examples.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: platformio-${{ runner.os }}-${{ hashFiles('library.properties') }}
+          restore-keys: |
+            platformio-${{ runner.os }}-
+
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Build examples
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          sketches=(examples/*/*.ino)
+
+          if [ ${#sketches[@]} -eq 0 ]; then
+            echo "No examples found"
+            exit 1
+          fi
+
+          for sketch in "${sketches[@]}"; do
+            sketch_dir=$(dirname "$sketch")
+            sketch_name=$(basename "$sketch_dir")
+            echo "::group::Building ${sketch_name}"
+            pio ci \
+              --board esp32dev \
+              --lib="." \
+              "$sketch"
+            echo "::endgroup::"
+          done
