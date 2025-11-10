@@ -515,7 +515,7 @@ ble_hs_hci_evt_le_adv_rpt(uint8_t subevent, const void *data, unsigned int len)
         desc.data = rpt->data;
         desc.rssi = rpt->data[rpt->data_len];
         /* Channel index follows RSSI if available */
-        if (data - (const uint8_t*)rpt > sizeof(rpt) + rpt->data_len + 1) {
+        if ((const uint8_t*)data - (const uint8_t*)rpt > sizeof(*rpt) + rpt->data_len + 1) {
             desc.channel_index = rpt->data[rpt->data_len + 1];
         }
 
